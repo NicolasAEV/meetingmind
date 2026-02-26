@@ -1,0 +1,5 @@
+export type { TranscriptEntry, TranscriptResult } from './transcript.ts'
+export type { Note }                               from './notes.ts'
+export type { AppSettings, ColorTheme }            from './settings.ts'
+export type { ModelProgressEvent }                 from './events.ts'
+export type { ElectronAPI }                        from './electron-api.ts'

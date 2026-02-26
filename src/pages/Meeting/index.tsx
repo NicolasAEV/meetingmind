@@ -1,0 +1,207 @@
+/**
+ * Meeting page — the main view of the application.
+ *
+ * Orchestrates:
+ *  - Live audio capture (mic + system) via useAudioRecording
+ *  - Whisper transcription requests through the electron service
+ *  - Ollama note generation (triggered from main process via IPC events)
+ *  - Settings state (loaded from electron-store, applied live)
+ */
+import { useState, useEffect, useCallback } from 'react'
+
+// Components
+import TranscriptPanel from '../../components/TranscriptPanel/index.tsx'
+import NotesPanel      from '../../components/NotesPanel/index.tsx'
+import AudioVisualizer from '../../components/AudioVisualizer/index.tsx'
+import Settings        from '../../components/Settings/index.tsx'
+
+// Constants
+import { DEFAULT_SETTINGS, COLOR_THEMES } from '../../constants/index.ts'
+
+// Services
+import { electron } from '../../services/electron.ts'
+
+// Hooks
+import { useAudioRecording } from '../../hooks/useAudioRecording.ts'
+import { useElectronEvents } from '../../hooks/useElectronEvents.ts'
+
+// Utils
+import { resampleTo16k } from '../../utils/audio.ts'
+
+// Types
+import type { AppSettings }        from '../../types/settings.ts'
+import type { TranscriptEntry }    from '../../types/transcript.ts'
+import type { Note }               from '../../types/notes.ts'
+import type { ModelProgressEvent } from '../../types/events.ts'
+
+// ─── Local types ──────────────────────────────────────────────────────────────
+type ModelStatus = 'loading' | 'ready' | 'error'
+
+// ─── Pure helpers ─────────────────────────────────────────────────────────────
+function getStatusLabel(status: ModelStatus, progress: number, recording: boolean): string {
+  if (status === 'loading') return `Cargando modelo… ${progress}%`
+  if (status === 'error')   return 'Error cargando modelo'
+  if (recording)            return 'Grabando'
+  return 'Listo'
+}
+
+function getDotClass(status: ModelStatus, recording: boolean): string {
+  if (status === 'loading') return 'loading'
+  if (status === 'error')   return ''
+  if (recording)            return 'recording'
+  return 'ready'
+}
+
+// ─── Page component ───────────────────────────────────────────────────────────
+export default function MeetingPage() {
+  // Settings
+  const [settings,     setSettings]     = useState<AppSettings>(DEFAULT_SETTINGS)
+  const [showSettings, setShowSettings] = useState(false)
+
+  // Model
+  const [modelStatus,   setModelStatus]   = useState<ModelStatus>('loading')
+  const [modelProgress, setModelProgress] = useState(0)
+
+  // Data
+  const [transcripts, setTranscripts] = useState<TranscriptEntry[]>([])
+  const [notes,       setNotes]       = useState<Note[]>([])
+  const [generating,  setGenerating]  = useState(false)
+
+  // Audio chunk handler — forwards resampled PCM to main process for transcription
+  const onChunk = useCallback(
+    (raw: Float32Array, fromRate: number, source: 'mic' | 'system') => {
+      if (modelStatus !== 'ready') return
+      const pcm16 = resampleTo16k(raw, fromRate)
+      electron
+        .transcribeChunk(pcm16, source, settings.language, settings.ollamaModel, settings.ollamaHost)
+        .catch((err: unknown) => console.warn('[transcribe]', err))
+    },
+    [modelStatus, settings.language, settings.ollamaModel, settings.ollamaHost],
+  )
+
+  const { isRecording, micAnalyser, systemAnalyser, start, stop } = useAudioRecording(onChunk)
+
+  // Apply color theme to CSS variables whenever it changes
+  useEffect(() => {
+    const theme = COLOR_THEMES[settings.colorTheme]
+    document.documentElement.style.setProperty('--accent',      theme.accent)
+    document.documentElement.style.setProperty('--accent-glow', theme.glow)
+    document.documentElement.style.setProperty('--accent-dim',  theme.accent + '2e')
+  }, [settings.colorTheme])
+
+  // Load persisted settings from electron-store on mount
+  useEffect(() => {
+    electron.getSettings().then(saved => {
+      setSettings(saved)
+      electron.setOpacity(saved.opacity)
+      if (saved.alwaysOnTop) electron.setAlwaysOnTop(true)
+    })
+  }, [])
+
+  // Subscribe to IPC events from main process
+  useElectronEvents({
+    onModelProgress: useCallback((ev: ModelProgressEvent) => {
+      setModelProgress(ev.progress)
+      if (ev.progress >= 100) setModelStatus('ready')
+    }, []),
+
+    onNoteGenerated: useCallback((note: Note) => {
+      setNotes(prev => [...prev, note])
+      setGenerating(false)
+    }, []),
+
+    onTranscriptNew: useCallback((entry: TranscriptEntry) => {
+      setTranscripts(prev => [...prev, entry])
+      if (entry.isTechnicalQuery) setGenerating(true)
+    }, []),
+  })
+
+  // Load (or reload) Whisper model — re-runs when user selects a different model
+  useEffect(() => {
+    setModelStatus('loading')
+    setModelProgress(0)
+    electron.loadModel(settings.whisperModel).catch(() => setModelStatus('error'))
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [settings.whisperModel])
+
+  // Persist settings change + apply side-effects (opacity, alwaysOnTop)
+  function handleSettingsChange(patch: Partial<AppSettings>) {
+    setSettings(prev => ({ ...prev, ...patch }))
+    electron.saveSettings(patch)
+    if (patch.opacity     !== undefined) electron.setOpacity(patch.opacity)
+    if (patch.alwaysOnTop !== undefined) electron.setAlwaysOnTop(patch.alwaysOnTop)
+  }
+
+  const statusLabel = getStatusLabel(modelStatus, modelProgress, isRecording)
+  const dotClass    = getDotClass(modelStatus, isRecording)
+
+  // ── Loading screen ─────────────────────────────────────────────────────────
+  if (modelStatus === 'loading') {
+    return (
+      <div className="model-overlay">
+        <div className="model-title">Cargando Whisper</div>
+        <div className="model-sub">
+          {settings.whisperModel} — descarga automática en primera ejecución
+        </div>
+        <div className="progress-bar-wrap">
+          <div className="progress-bar-fill" style={{ width: `${modelProgress}%` }} />
+        </div>
+        <div className="model-sub">{modelProgress}%</div>
+      </div>
+    )
+  }
+
+  // ── Main layout ────────────────────────────────────────────────────────────
+  return (
+    <>
+      {/* Title bar */}
+      <div className="titlebar">
+        <div className="titlebar-logo">Meeting<span>Mind</span></div>
+
+        <div className="titlebar-status">
+          <div className={`status-dot ${dotClass}`} />
+          {statusLabel}
+        </div>
+
+        <div className="titlebar-spacer" />
+
+        <div className="titlebar-controls">
+          <button
+            className={`rec-btn${isRecording ? ' recording' : ''}`}
+            onClick={isRecording ? stop : start}
+            disabled={modelStatus !== 'ready'}
+          >
+            {isRecording ? '⬛ Detener' : '⬤ Iniciar'}
+          </button>
+
+          <button className="tb-icon-btn" title="Configuración" onClick={() => setShowSettings(true)}>⚙</button>
+          <button className="tb-icon-btn" title="Minimizar"     onClick={() => electron.minimizeWindow()}>─</button>
+          <button className="tb-icon-btn" title="Maximizar"     onClick={() => electron.maximizeWindow()}>□</button>
+          <button className="tb-icon-btn close" title="Cerrar"  onClick={() => electron.closeWindow()}>✕</button>
+        </div>
+      </div>
+
+      {/* Content panels */}
+      <div className="content">
+        <TranscriptPanel entries={transcripts} />
+        <NotesPanel notes={notes} generating={generating} />
+      </div>
+
+      {/* Audio visualizer */}
+      <AudioVisualizer
+        micAnalyser={micAnalyser}
+        systemAnalyser={systemAnalyser}
+        isRecording={isRecording}
+      />
+
+      {/* Settings overlay */}
+      {showSettings && (
+        <Settings
+          settings={settings}
+          onChange={handleSettingsChange}
+          onClose={() => setShowSettings(false)}
+        />
+      )}
+    </>
+  )
+}

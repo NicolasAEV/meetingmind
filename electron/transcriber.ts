@@ -1,0 +1,138 @@
+/**
+ * Whisper transcription via @xenova/transformers (ONNX Runtime).
+ *
+ * Runs in the Electron main process (Node.js).
+ * @xenova/transformers uses onnxruntime-node which ships prebuilt binaries for
+ * Node.js 20/22 — compatible with Electron 40 (Node 22) without compilation.
+ *
+ * If you see a native-module error on first run, execute:
+ *   npx electron-rebuild -f -w @xenova/transformers
+ */
+import { ipcMain, app, type BrowserWindow } from 'electron'
+import path from 'node:path'
+import { v4 as uuidv4 } from 'uuid'
+import { detectTechnicalQuery }  from './detector.js'
+import { appendContext, generateNote, emitNote } from './llm.js'
+import type { TranscriptEntry, TranscriptResult, ModelProgressEvent } from '../src/types.js'
+
+// ─── Dynamic import so the app starts even if onnxruntime fails to load ───────
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let asr: any = null
+let modelLoading = false
+let modelReady = false
+
+type ProgressCb = (ev: ModelProgressEvent) => void
+
+async function loadWhisperModel(modelName: string, onProgress: ProgressCb): Promise<void> {
+  if (asr || modelLoading) return
+  modelLoading = true
+
+  try {
+    // Configure cache directory to userData so models persist between updates
+    const { pipeline, env } = await import('@xenova/transformers')
+    env.cacheDir = path.join(app.getPath('userData'), '.models')
+    env.allowRemoteModels = true
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    asr = await pipeline('automatic-speech-recognition', modelName, {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      progress_callback: (p: any) => {
+        if (typeof p?.progress === 'number') {
+          onProgress({ progress: Math.round(p.progress), status: p.status ?? '' })
+        }
+      },
+    })
+    modelReady = true
+  } catch (err) {
+    modelLoading = false
+    throw err
+  }
+  modelLoading = false
+}
+
+async function transcribeBuffer(audioData: Float32Array, language: string): Promise<string> {
+  if (!asr) throw new Error('Whisper model not loaded')
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const result: any = await asr(audioData, {
+    language: language === 'auto' ? undefined : language,
+    task: 'transcribe',
+    return_timestamps: false,
+  })
+
+  if (Array.isArray(result)) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return result.map((r: any) => String(r?.text ?? '')).join(' ').trim()
+  }
+  return String(result?.text ?? '').trim()
+}
+
+// ─── IPC setup ────────────────────────────────────────────────────────────────
+
+export function setupTranscriberIPC(win: BrowserWindow): void {
+  // Load model on request from renderer
+  ipcMain.handle('transcribe:load-model', async (_e, modelName: string) => {
+    await loadWhisperModel(modelName, (ev) => {
+      win.webContents.send('transcribe:model-progress', ev)
+    })
+  })
+
+  ipcMain.handle('transcribe:is-ready', () => modelReady)
+
+  // Receive a 16 kHz mono Float32Array chunk from renderer
+  ipcMain.handle(
+    'transcribe:chunk',
+    async (
+      _e,
+      buffer: ArrayBuffer,
+      source: 'mic' | 'system',
+      language: string,
+      ollamaModel: string,
+      ollamaHost: string,
+    ): Promise<TranscriptResult> => {
+      const audioData = new Float32Array(buffer)
+      const text = await transcribeBuffer(audioData, language)
+
+      if (!text) {
+        return { text: '', source, isTechnicalQuery: false, confidence: 0 }
+      }
+
+      const detection = detectTechnicalQuery(text)
+      appendContext(text)
+
+      // Emit to renderer as a TranscriptEntry for the live panel
+      const entry: TranscriptEntry = {
+        id: uuidv4(),
+        text,
+        timestamp: Date.now(),
+        source,
+        isTechnicalQuery: detection.isTechnical,
+      }
+      win.webContents.send('transcript:new', entry)
+
+      // Async note generation — does not block the transcript response
+      if (detection.isTechnical) {
+        generateNote(text, ollamaModel, ollamaHost)
+          .then((noteText) => {
+            if (noteText) emitNote(win, text, noteText, detection.confidence)
+          })
+          .catch((err: unknown) => {
+            console.error('[LLM] Note generation failed:', err)
+          })
+      }
+
+      return {
+        text,
+        source,
+        isTechnicalQuery: detection.isTechnical,
+        confidence: detection.confidence,
+      }
+    },
+  )
+
+  win.webContents.once('destroyed', () => {
+    ipcMain.removeHandler('transcribe:load-model')
+    ipcMain.removeHandler('transcribe:is-ready')
+    ipcMain.removeHandler('transcribe:chunk')
+  })
+}
