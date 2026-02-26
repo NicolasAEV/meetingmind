@@ -62,10 +62,21 @@ export function setupLLMIPC(win: BrowserWindow): void {
     },
   )
 
-  // Called internally by the transcriber after query detection
+  // Check Ollama connection and return available models
+  ipcMain.handle('ollama:list-models', async (_e, host: string) => {
+    try {
+      const client = getClient(host)
+      const { models } = await client.list()
+      return { connected: true, models: models.map(m => m.name) }
+    } catch (err) {
+      return { connected: false, models: [] as string[], error: String(err) }
+    }
+  })
+
   // win is captured in closure so notes are always routed to the right window
   win.webContents.once('destroyed', () => {
     ipcMain.removeHandler('llm:generate-note')
+    ipcMain.removeHandler('ollama:list-models')
   })
 }
 

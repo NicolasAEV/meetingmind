@@ -196,8 +196,24 @@ function setupLLMIPC(win) {
 	ipcMain.handle("llm:generate-note", async (_e, query, ollamaModel, ollamaHost) => {
 		return await generateNote(query, ollamaModel, ollamaHost);
 	});
+	ipcMain.handle("ollama:list-models", async (_e, host) => {
+		try {
+			const { models } = await getClient(host).list();
+			return {
+				connected: true,
+				models: models.map((m) => m.name)
+			};
+		} catch (err) {
+			return {
+				connected: false,
+				models: [],
+				error: String(err)
+			};
+		}
+	});
 	win.webContents.once("destroyed", () => {
 		ipcMain.removeHandler("llm:generate-note");
+		ipcMain.removeHandler("ollama:list-models");
 	});
 }
 function emitNote(win, triggerText, noteText, confidence) {
@@ -243,15 +259,34 @@ async function loadWhisperModel(modelName, onProgress) {
 	}
 	modelLoading = false;
 }
+var MIN_SAMPLES_16K = 16e3 * 3;
+var MIN_RMS = .001;
+function rms(data) {
+	let sum = 0;
+	for (const sample of data) sum += sample * sample;
+	return Math.sqrt(sum / data.length);
+}
+var HALLUCINATION_PATTERNS = [
+	/^(\.|\s)*$/,
+	/^(gracias|thank you|thanks)[.!,\s]*$/i,
+	/^(subtítulos|subtitles|caption)/i,
+	/^(www\.|http)/i
+];
+function isHallucination(text) {
+	return HALLUCINATION_PATTERNS.some((p) => p.test(text.trim()));
+}
 async function transcribeBuffer(audioData, language) {
 	if (!asr) throw new Error("Whisper model not loaded");
+	if (audioData.length < MIN_SAMPLES_16K) return "";
+	if (rms(audioData) < MIN_RMS) return "";
 	const result = await asr(audioData, {
 		language: language === "auto" ? void 0 : language,
 		task: "transcribe",
 		return_timestamps: false
 	});
-	if (Array.isArray(result)) return result.map((r) => String(r?.text ?? "")).join(" ").trim();
-	return String(result?.text ?? "").trim();
+	const text = Array.isArray(result) ? result.map((r) => String(r?.text ?? "")).join(" ").trim() : String(result?.text ?? "").trim();
+	if (isHallucination(text)) return "";
+	return text;
 }
 function setupTranscriberIPC(win) {
 	ipcMain.handle("transcribe:load-model", async (_e, modelName) => {
@@ -373,6 +408,7 @@ function createWindow() {
 		ipcMain.removeHandler("settings:get");
 		ipcMain.removeHandler("settings:save");
 		ipcMain.removeHandler("audio:get-sources");
+		ipcMain.removeHandler("ollama:list-models");
 		win = null;
 	});
 }

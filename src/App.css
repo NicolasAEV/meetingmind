@@ -110,7 +110,7 @@ html, body, #root {
   transition:    background .15s, color .15s;
 }
 .tb-icon-btn:hover { background: var(--surface-hover); color: var(--text); }
-.tb-icon-btn.close:hover { background: rgba(244,67,54,.25); color: #f44336; }
+.tb-icon-btn.close:hover { background: rgba(244,67,54,.25); color: #ff7b6b; }
 
 .rec-btn {
   -webkit-app-region: no-drag;
@@ -132,10 +132,10 @@ html, body, #root {
 .rec-btn:active { transform: scale(.96); }
 .rec-btn.recording {
   background:   rgba(244,67,54,.2);
-  color:        #f44336;
+  color:        #ff7b6b;
   border-color: rgba(244,67,54,.4);
 }
-.rec-btn.recording:hover { background: #f44336; color: #fff; }
+.rec-btn.recording:hover { background: #c62828; color: #fff; }
 
 /* ─── Main content (transcript + notes) ─────────────────────────────────── */
 .content {
@@ -301,7 +301,17 @@ html, body, #root {
   animation:  fadeIn .2s ease;
 }
 
+.settings-backdrop {
+  position:   absolute;
+  inset:      0;
+  background: transparent;
+  border:     none;
+  cursor:     default;
+}
+
 .settings-panel {
+  position: relative;
+  z-index:  1;
   background:    var(--bg);
   border:        1px solid var(--border);
   border-radius: 16px;
@@ -343,6 +353,8 @@ html, body, #root {
   cursor:        pointer;
   border:        2px solid transparent;
   transition:    transform .15s, border-color .15s;
+  padding:       0;
+  appearance:    none;
 }
 .swatch:hover  { transform: scale(1.12); }
 .swatch.active { border-color: #fff; box-shadow: 0 0 0 3px rgba(255,255,255,.2); }
@@ -387,6 +399,12 @@ html, body, #root {
 .settings-row input[type="text"]:focus,
 .settings-row select:focus { border-color: var(--accent); }
 
+.settings-row select option,
+.settings-row select optgroup {
+  background-color: #181821;
+  color:            #e2e2ee;
+}
+
 .settings-row input[type="checkbox"] {
   accent-color: var(--accent);
   width:        16px;
@@ -401,6 +419,56 @@ html, body, #root {
   width:       36px;
   text-align:  right;
 }
+
+/* Ollama section header */
+.ollama-section-header {
+  display:     flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.ollama-section-header .settings-label { margin-bottom: 0; }
+
+.ollama-status-bar {
+  display:     flex;
+  align-items: center;
+  gap:         6px;
+}
+
+.ollama-dot {
+  width:         8px;
+  height:        8px;
+  border-radius: 50%;
+  flex-shrink:   0;
+}
+.ollama-dot--idle    { background: var(--text-muted); }
+.ollama-dot--loading { background: #f5a623; animation: pulse 1s infinite; }
+.ollama-dot--ok      { background: #4caf50; }
+.ollama-dot--error   { background: #f44336; }
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: .3; }
+}
+
+.ollama-status-text {
+  font-size:  11px;
+  color:      var(--text-muted);
+}
+
+.ollama-refresh-btn {
+  background:    transparent;
+  border:        1px solid var(--border);
+  border-radius: 4px;
+  color:         var(--text-muted);
+  font-size:     13px;
+  line-height:   1;
+  padding:       2px 6px;
+  cursor:        pointer;
+  transition:    color .15s, border-color .15s;
+}
+.ollama-refresh-btn:hover:not(:disabled) { color: var(--accent); border-color: var(--accent); }
+.ollama-refresh-btn:disabled { opacity: .4; cursor: default; }
 
 .settings-close {
   display:       block;

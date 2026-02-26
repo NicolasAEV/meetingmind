@@ -57,11 +57,12 @@ export async function buildAudioGraph(
     onChunk(ev.data, ctx.sampleRate)
   }
 
-  // source ─► analyser (visualizer) AND worklet (transcription pipeline)
+  // source ─► analyser (solo visualización, sin salida a altavoces)
+  // source ─► worklet  (captura PCM para transcripción)
+  // El AnalyserNode NO se conecta a ctx.destination para evitar
+  // que el audio del micrófono/sistema se reproduzca en los altavoces.
   source.connect(analyser)
   source.connect(worklet)
-  // Keep the analyser's output connected so the node doesn't get garbage-collected
-  analyser.connect(ctx.destination)
 
   return { ctx, analyser }
 }

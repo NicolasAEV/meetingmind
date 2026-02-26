@@ -47,6 +47,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   generateNote: (query: string, ollamaModel: string, ollamaHost: string): Promise<string> =>
     ipcRenderer.invoke('llm:generate-note', query, ollamaModel, ollamaHost),
 
+  listOllamaModels: (host: string): Promise<{ connected: boolean; models: string[]; error?: string }> =>
+    ipcRenderer.invoke('ollama:list-models', host),
+
   // ── Settings ──────────────────────────────────────────────────────────────
   getSettings: (): Promise<AppSettings> =>
     ipcRenderer.invoke('settings:get'),

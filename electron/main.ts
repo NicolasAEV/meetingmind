@@ -124,6 +124,7 @@ function createWindow(): void {
     ipcMain.removeHandler('settings:get')
     ipcMain.removeHandler('settings:save')
     ipcMain.removeHandler('audio:get-sources')
+    ipcMain.removeHandler('ollama:list-models')
     win = null
   })
 }

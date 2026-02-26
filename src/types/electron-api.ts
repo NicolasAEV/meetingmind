@@ -22,6 +22,12 @@ export interface ElectronAPI {
     ollamaHost:  string,
   ) => Promise<string>
 
+  listOllamaModels: (host: string) => Promise<{
+    connected: boolean
+    models:    string[]
+    error?:    string
+  }>
+
   // ── Settings ──────────────────────────────────────────────────────────────
   getSettings:  ()                          => Promise<AppSettings>
   saveSettings: (patch: Partial<AppSettings>) => Promise<void>

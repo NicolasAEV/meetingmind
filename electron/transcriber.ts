@@ -50,21 +50,55 @@ async function loadWhisperModel(modelName: string, onProgress: ProgressCb): Prom
   modelLoading = false
 }
 
+// Mínimo de muestras a 16 kHz para intentar transcribir (evita chunks demasiado cortos)
+const MIN_SAMPLES_16K = 16000 * 3   // 3 segundos a 16 kHz
+
+// Umbral de RMS: si el chunk llega aquí ya pasó el filtro del worklet,
+// pero hacemos una segunda comprobación por si acaso (e.g. audio de sistema muy bajo)
+const MIN_RMS = 0.001
+
+function rms(data: Float32Array): number {
+  let sum = 0
+  for (const sample of data) sum += sample * sample
+  return Math.sqrt(sum / data.length)
+}
+
+// Whisper genera texto espurio (alucinaciones) con frases repetitivas cuando
+// el audio es silencioso o muy corto. Este set filtra las más comunes.
+const HALLUCINATION_PATTERNS = [
+  /^(\.|\s)*$/,
+  /^(gracias|thank you|thanks)[.!,\s]*$/i,
+  /^(subtítulos|subtitles|caption)/i,
+  /^(www\.|http)/i,
+]
+
+function isHallucination(text: string): boolean {
+  return HALLUCINATION_PATTERNS.some(p => p.test(text.trim()))
+}
+
 async function transcribeBuffer(audioData: Float32Array, language: string): Promise<string> {
   if (!asr) throw new Error('Whisper model not loaded')
 
+  // Descartar chunks demasiado cortos o silenciosos antes de llamar a Whisper
+  if (audioData.length < MIN_SAMPLES_16K) return ''
+  if (rms(audioData) < MIN_RMS) return ''
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const result: any = await asr(audioData, {
-    language: language === 'auto' ? undefined : language,
-    task: 'transcribe',
+    language:          language === 'auto' ? undefined : language,
+    task:              'transcribe',
     return_timestamps: false,
   })
 
-  if (Array.isArray(result)) {
+  const text = Array.isArray(result)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return result.map((r: any) => String(r?.text ?? '')).join(' ').trim()
-  }
-  return String(result?.text ?? '').trim()
+    ? result.map((r: any) => String(r?.text ?? '')).join(' ').trim()
+    : String(result?.text ?? '').trim()
+
+  // Descartar alucinaciones típicas de Whisper en audio silencioso
+  if (isHallucination(text)) return ''
+
+  return text
 }
 
 // ─── IPC setup ────────────────────────────────────────────────────────────────
