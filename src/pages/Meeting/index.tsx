@@ -132,6 +132,27 @@ export default function MeetingPage() {
     if (patch.alwaysOnTop !== undefined) electron.setAlwaysOnTop(patch.alwaysOnTop)
   }
 
+  // Manual query from NotesPanel
+  const handleManualQuery = useCallback((query: string) => {
+    setGenerating(true)
+    electron
+      .generateNote(query, settings.ollamaModel, settings.ollamaHost)
+      .then(noteText => {
+        if (noteText) {
+          const note = {
+            id:          crypto.randomUUID(),
+            text:        noteText,
+            triggerText: query,
+            timestamp:   Date.now(),
+            confidence:  1,
+          }
+          setNotes(prev => [...prev, note])
+        }
+      })
+      .catch((err: unknown) => console.warn('[manual query]', err))
+      .finally(() => setGenerating(false))
+  }, [settings.ollamaModel, settings.ollamaHost])
+
   const statusLabel = getStatusLabel(modelStatus, modelProgress, isRecording)
   const dotClass    = getDotClass(modelStatus, isRecording)
 
@@ -156,7 +177,10 @@ export default function MeetingPage() {
     <>
       {/* Title bar */}
       <div className="titlebar">
-        <div className="titlebar-logo">Meeting<span>Mind</span></div>
+        <div className="titlebar-logo">
+          Meeting<span className="logo-sub">Mind</span>
+          <span className="pro-badge">PRO</span>
+        </div>
 
         <div className="titlebar-status">
           <div className={`status-dot ${dotClass}`} />
@@ -184,7 +208,12 @@ export default function MeetingPage() {
       {/* Content panels */}
       <div className="content">
         <TranscriptPanel entries={transcripts} />
-        <NotesPanel notes={notes} generating={generating} />
+        <NotesPanel
+          notes={notes}
+          generating={generating}
+          ollamaModel={settings.ollamaModel}
+          onQuery={handleManualQuery}
+        />
       </div>
 
       {/* Audio visualizer */}
@@ -193,6 +222,22 @@ export default function MeetingPage() {
         systemAnalyser={systemAnalyser}
         isRecording={isRecording}
       />
+
+      {/* Bottom status bar */}
+      <div className="status-bar">
+        <div className="status-bar-item">
+          <span className={`status-dot-sm${isRecording ? '' : ' inactive'}`} />
+          INPUT: {isRecording ? 'GRABANDO' : 'DEFAULT AUDIO DEVICE'}
+        </div>
+        <span className="status-bar-sep">|</span>
+        <div className="status-bar-item">
+          <span className="status-dot-sm" />
+          LLM: {settings.ollamaModel.toUpperCase()}
+        </div>
+        <div className="status-bar-right status-bar-item">
+          Whisper: {settings.whisperModel.split('/').pop()}
+        </div>
+      </div>
 
       {/* Settings overlay */}
       {showSettings && (
