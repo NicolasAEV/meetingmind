@@ -39,6 +39,10 @@ export default function Settings({ settings, onChange, onClose }: Props) {
       if (result.connected) {
         setOllamaModels(result.models)
         setOllamaStatus('ok')
+        // Auto-select first model if stored value isn't in the list
+        if (result.models.length > 0 && !result.models.includes(local.ollamaModel)) {
+          update('ollamaModel', result.models[0])
+        }
       } else {
         setOllamaModels([])
         setOllamaStatus('error')
@@ -162,31 +166,16 @@ export default function Settings({ settings, onChange, onClose }: Props) {
           </div>
 
           <div className="settings-row">
-            <label htmlFor="setting-ollama-host">Host</label>
-            <input
-              id="setting-ollama-host"
-              type="text"
-              value={local.ollamaHost}
-              onChange={e => update('ollamaHost', e.target.value)}
-              onBlur={e => checkOllama(e.target.value)}
-              placeholder="http://localhost:11434"
-            />
-          </div>
-
-          <div className="settings-row">
             <label htmlFor="setting-ollama-model">Modelo</label>
             {ollamaModels.length > 0 ? (
               <select
                 id="setting-ollama-model"
-                value={local.ollamaModel}
+                value={ollamaModels.includes(local.ollamaModel) ? local.ollamaModel : ollamaModels[0]}
                 onChange={e => update('ollamaModel', e.target.value)}
               >
                 {ollamaModels.map(m => (
                   <option key={m} value={m}>{m}</option>
                 ))}
-                {!ollamaModels.includes(local.ollamaModel) && (
-                  <option value={local.ollamaModel}>{local.ollamaModel}</option>
-                )}
               </select>
             ) : (
               <input
@@ -197,6 +186,18 @@ export default function Settings({ settings, onChange, onClose }: Props) {
                 placeholder="llama3.2"
               />
             )}
+          </div>
+
+          <div className="settings-row">
+            <label htmlFor="setting-ollama-host">Host</label>
+            <input
+              id="setting-ollama-host"
+              type="text"
+              value={local.ollamaHost}
+              onChange={e => update('ollamaHost', e.target.value)}
+              onBlur={e => checkOllama(e.target.value)}
+              placeholder="http://localhost:11434"
+            />
           </div>
         </div>
 

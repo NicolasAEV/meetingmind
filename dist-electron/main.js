@@ -267,10 +267,15 @@ function rms(data) {
 	return Math.sqrt(sum / data.length);
 }
 var HALLUCINATION_PATTERNS = [
-	/^(\.|\s)*$/,
-	/^(gracias|thank you|thanks)[.!,\s]*$/i,
-	/^(subtítulos|subtitles|caption)/i,
-	/^(www\.|http)/i
+	/^[\s.,!?…\-–—]*$/,
+	/^(gracias|thank you|thanks|bye|adiós|suscríbete)[.!,\s]*$/i,
+	/^(subtítulos|subtitulos|subtitles|captions?|transcri)/i,
+	/^(www\.|http|@)/i,
+	/[♪♫🎵🎶]/u,
+	/^\[?(music|música|musica|song|canción|instrumental|applause|laughter|silence|ambient)\]?\.?$/i,
+	/^(\s*[[({].*?[\])}]\s*)+$/,
+	/^.{0,2}$/,
+	/^(.{3,}?)\s+\1(\s+\1)+$/
 ];
 function isHallucination(text) {
 	return HALLUCINATION_PATTERNS.some((p) => p.test(text.trim()));

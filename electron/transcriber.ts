@@ -63,13 +63,26 @@ function rms(data: Float32Array): number {
   return Math.sqrt(sum / data.length)
 }
 
-// Whisper genera texto espurio (alucinaciones) con frases repetitivas cuando
-// el audio es silencioso o muy corto. Este set filtra las más comunes.
+// Whisper genera texto espurio (alucinaciones) cuando el audio contiene
+// silencio, música o ruido no-vocal. Este set filtra las más comunes.
 const HALLUCINATION_PATTERNS = [
-  /^(\.|\s)*$/,
-  /^(gracias|thank you|thanks)[.!,\s]*$/i,
-  /^(subtítulos|subtitles|caption)/i,
-  /^(www\.|http)/i,
+  // Silencio / puntuación sola
+  /^[\s.,!?…\-–—]*$/,
+  // Frases de cortesía repetitivas
+  /^(gracias|thank you|thanks|bye|adiós|suscríbete)[.!,\s]*$/i,
+  // Marcadores de subtítulos / accesibilidad
+  /^(subtítulos|subtitulos|subtitles|captions?|transcri)/i,
+  // URLs o texto técnico espurio
+  /^(www\.|http|@)/i,
+  // Marcadores de música que Whisper inserta
+  /[♪♫🎵🎶]/u,
+  /^\[?(music|música|musica|song|canción|instrumental|applause|laughter|silence|ambient)\]?\.?$/i,
+  // Contenido formado solo por etiquetas entre corchetes/paréntesis
+  /^(\s*[[({].*?[\])}]\s*)+$/,
+  // Texto extremadamente corto (< 3 chars) que no es significativo
+  /^.{0,2}$/,
+  // Repetición de palabras (alucinación de bucle)
+  /^(.{3,}?)\s+\1(\s+\1)+$/,
 ]
 
 function isHallucination(text: string): boolean {
