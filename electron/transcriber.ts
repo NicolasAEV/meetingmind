@@ -43,6 +43,8 @@ async function loadWhisperModel(modelName: string, onProgress: ProgressCb): Prom
       },
     })
     modelReady = true
+    // Notify renderer that the model is truly ready (all files loaded + pipeline init)
+    onProgress({ progress: 100, status: 'ready' })
   } catch (err) {
     modelLoading = false
     throw err
@@ -51,7 +53,7 @@ async function loadWhisperModel(modelName: string, onProgress: ProgressCb): Prom
 }
 
 // Mínimo de muestras a 16 kHz para intentar transcribir (evita chunks demasiado cortos)
-const MIN_SAMPLES_16K = 16000 * 3   // 3 segundos a 16 kHz
+const MIN_SAMPLES_16K = 16000 * 10  // 10 segundos a 16 kHz
 
 // Umbral de RMS: si el chunk llega aquí ya pasó el filtro del worklet,
 // pero hacemos una segunda comprobación por si acaso (e.g. audio de sistema muy bajo)

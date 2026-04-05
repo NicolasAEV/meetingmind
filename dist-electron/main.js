@@ -39,14 +39,18 @@ function setupAudioIPC() {
 		}));
 	});
 }
+function normalize(text) {
+	return text.normalize("NFD").replaceAll(/[\u0300-\u036f]/g, "");
+}
 var QUERY_PATTERNS = [
-	/[¿?]?\s*cómo\s+(se\s+)?(hace|funciona|implementa|usa|instala|configura|despliega)/i,
-	/[¿?]?\s*qué\s+(es|son|hace|significa|ventaja|diferencia)/i,
-	/[¿?]?\s*cuál\s+(es|son|sería|debería)/i,
-	/[¿?]?\s*cuándo\s+(usar|se\s+usa|conviene|debo)/i,
+	/[¿?]?\s*como\s+(se\s+)?(hace|funciona|implementa|usa|instala|configura|despliega)/i,
+	/[¿?]?\s*que\s+(es|son|hace|significa|ventaja|diferencia)/i,
+	/[¿?]?\s*cual\s+(es|son|seria|deberia)/i,
+	/[¿?]?\s*cuando\s+(usar|se\s+usa|conviene|debo)/i,
+	/[¿?]?\s*por\s+que\s+(no|si|se|es|hay|usar)/i,
 	/\bvs\.?\s+\b|\bversus\b/i,
 	/diferencia\s+(entre|de|con)/i,
-	/mejor\s+(opción|alternativa|práctica|herramienta)/i,
+	/mejor\s+(opcion|alternativa|practica|herramienta)/i,
 	/[¿?]?\s*how\s+(does|do|to|is|are|would)/i,
 	/[¿?]?\s*what\s+(is|are|does|difference)/i,
 	/[¿?]?\s*which\s+(is|are|one|should)/i,
@@ -89,6 +93,8 @@ var TECH_KEYWORDS = [
 	"vite",
 	"webpack",
 	"node",
+	"nodejs",
+	"node.js",
 	"deno",
 	"bun",
 	"python",
@@ -122,6 +128,10 @@ var TECH_KEYWORDS = [
 	"rag",
 	"neural network",
 	"gpu",
+	"whisper",
+	"ollama",
+	"inteligencia artificial",
+	" ia ",
 	"arquitectura",
 	"architecture",
 	"pattern",
@@ -130,7 +140,6 @@ var TECH_KEYWORDS = [
 	"algorithm",
 	"algoritmo",
 	"cache",
-	"caché",
 	"queue",
 	"async",
 	"ci/cd",
@@ -144,7 +153,7 @@ var TECH_KEYWORDS = [
 	"grafana"
 ];
 function detectTechnicalQuery(text) {
-	const lower = text.toLowerCase();
+	const lower = normalize(text.toLowerCase());
 	let matchedPattern;
 	for (const pattern of QUERY_PATTERNS) if (pattern.test(lower)) {
 		matchedPattern = pattern.source;
@@ -253,13 +262,17 @@ async function loadWhisperModel(modelName, onProgress) {
 			});
 		} });
 		modelReady = true;
+		onProgress({
+			progress: 100,
+			status: "ready"
+		});
 	} catch (err) {
 		modelLoading = false;
 		throw err;
 	}
 	modelLoading = false;
 }
-var MIN_SAMPLES_16K = 16e3 * 3;
+var MIN_SAMPLES_16K = 16e3 * 10;
 var MIN_RMS = .001;
 function rms(data) {
 	let sum = 0;

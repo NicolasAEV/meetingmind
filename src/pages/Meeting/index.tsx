@@ -89,12 +89,20 @@ export default function MeetingPage() {
     document.documentElement.style.setProperty('--accent-dim',  theme.accent + '2e')
   }, [settings.colorTheme])
 
-  // Load persisted settings from electron-store on mount
+  // Load persisted settings from electron-store on mount, then auto-fix Ollama model
   useEffect(() => {
-    electron.getSettings().then(saved => {
+    electron.getSettings().then(async saved => {
       setSettings(saved)
       electron.setOpacity(saved.opacity)
       if (saved.alwaysOnTop) electron.setAlwaysOnTop(true)
+
+      // If the saved model isn't available in Ollama, switch to the first one that is
+      const result = await electron.listOllamaModels(saved.ollamaHost)
+      if (result.connected && result.models.length > 0 && !result.models.includes(saved.ollamaModel)) {
+        const firstModel = result.models[0]
+        setSettings(prev => ({ ...prev, ollamaModel: firstModel }))
+        electron.saveSettings({ ollamaModel: firstModel })
+      }
     })
   }, [])
 
@@ -102,7 +110,7 @@ export default function MeetingPage() {
   useElectronEvents({
     onModelProgress: useCallback((ev: ModelProgressEvent) => {
       setModelProgress(ev.progress)
-      if (ev.progress >= 100) setModelStatus('ready')
+      if (ev.status === 'ready') setModelStatus('ready')
     }, []),
 
     onNoteGenerated: useCallback((note: Note) => {

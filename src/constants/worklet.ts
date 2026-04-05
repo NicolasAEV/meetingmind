@@ -35,7 +35,7 @@
  *    cae en el rango de habla (100–3500 Hz aprox. a 48 kHz).
  */
 export const WORKLET_CODE = `
-const CHUNK_SECONDS  = 5       // duración objetivo del chunk
+const CHUNK_SECONDS  = 15      // duración objetivo del chunk
 
 // ── Umbrales VAD ──────────────────────────────────────────────────────────────
 const SILENCE_THRESH = 0.003   // RMS mínimo global
