@@ -12,8 +12,8 @@ import { ipcMain, app, type BrowserWindow } from 'electron'
 import path from 'node:path'
 import { v4 as uuidv4 } from 'uuid'
 import { detectTechnicalQuery }  from './detector.js'
-import { appendContext, generateNote, emitNote } from './llm.js'
-import type { TranscriptEntry, TranscriptResult, ModelProgressEvent } from '../src/types.js'
+import { appendContext, generateNote, emitNote } from '../ai/orchestrator.js'
+import type { TranscriptEntry, TranscriptResult, ModelProgressEvent } from '../../../src/types.js'
 
 // ─── Dynamic import so the app starts even if onnxruntime fails to load ───────
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -136,8 +136,9 @@ export function setupTranscriberIPC(win: BrowserWindow): void {
       buffer: ArrayBuffer,
       source: 'mic' | 'system',
       language: string,
-      ollamaModel: string,
-      ollamaHost: string,
+      aiProvider: any, // StrategyType
+      aiModel: string,
+      aiOptions: Record<string, any>,
     ): Promise<TranscriptResult> => {
       const audioData = new Float32Array(buffer)
       const text = await transcribeBuffer(audioData, language)
@@ -161,7 +162,7 @@ export function setupTranscriberIPC(win: BrowserWindow): void {
 
       // Async note generation — does not block the transcript response
       if (detection.isTechnical) {
-        generateNote(text, ollamaModel, ollamaHost)
+        generateNote(text, aiProvider, aiModel, aiOptions)
           .then((noteText) => {
             if (noteText) emitNote(win, text, noteText, detection.confidence)
           })

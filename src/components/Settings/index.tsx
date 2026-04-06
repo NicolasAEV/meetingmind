@@ -17,7 +17,7 @@ const STATUS_LABEL: Record<OllamaStatus, string> = {
 const TABS: { id: SettingsTab; icon: string; label: string }[] = [
   { id: 'visual', icon: '🎨', label: 'Visual'          },
   { id: 'audio',  icon: '🎙', label: 'Audio & Whisper' },
-  { id: 'ai',     icon: '🤖', label: 'IA / Ollama'     },
+  { id: 'ai',     icon: '🤖', label: 'IA (Ollama/API)' },
   { id: 'files',  icon: '📂', label: 'Archivos'        },
 ]
 
@@ -175,56 +175,155 @@ export default function Settings({ settings, onChange, onClose }: Props) {
   }
 
   function renderAI() {
+    const isOllama = local.aiProvider === 'ollama'
+
     return (
       <>
-        <div className="settings-section-hdr">
-          Ollama
-          <div className="ollama-status-bar" style={{ marginLeft: 'auto' }}>
-            <span className={`ollama-dot ollama-dot--${ollamaStatus}`} />
-            <span className="ollama-status-text">{STATUS_LABEL[ollamaStatus]}</span>
-            <button
-              className="ollama-refresh-btn"
-              onClick={() => checkOllama()}
-              disabled={ollamaStatus === 'loading'}
-              title="Verificar conexión"
-            >↻</button>
-          </div>
+        <div className="settings-section-hdr">Proveedor de IA</div>
+        <div className="settings-row">
+          <label htmlFor="setting-ai-provider" className="settings-row-text">Proveedor</label>
+          <select
+            id="setting-ai-provider"
+            value={local.aiProvider}
+            onChange={e => update('aiProvider', e.target.value as any)}
+          >
+            <option value="ollama">Ollama (Local)</option>
+            <option value="openai">OpenAI (GPT)</option>
+            <option value="gemini">Google Gemini</option>
+            <option value="anthropic">Anthropic (Claude)</option>
+          </select>
         </div>
 
-        <div className="settings-row">
-          <label htmlFor="setting-ollama-model" className="settings-row-text">Modelo</label>
-          {ollamaModels.length > 0 ? (
-            <select
-              id="setting-ollama-model"
-              value={ollamaModels.includes(local.ollamaModel) ? local.ollamaModel : ollamaModels[0]}
-              onChange={e => update('ollamaModel', e.target.value)}
-            >
-              {ollamaModels.map(m => (
-                <option key={m} value={m}>{m}</option>
-              ))}
-            </select>
-          ) : (
-            <input
-              id="setting-ollama-model"
-              type="text"
-              value={local.ollamaModel}
-              onChange={e => update('ollamaModel', e.target.value)}
-              placeholder="llama3.2"
-            />
-          )}
-        </div>
+        {isOllama && (
+          <>
+            <div className="settings-section-hdr mt">
+              Ollama
+              <div className="ollama-status-bar" style={{ marginLeft: 'auto' }}>
+                <span className={`ollama-dot ollama-dot--${ollamaStatus}`} />
+                <span className="ollama-status-text">{STATUS_LABEL[ollamaStatus]}</span>
+                <button
+                  className="ollama-refresh-btn"
+                  onClick={() => checkOllama()}
+                  disabled={ollamaStatus === 'loading'}
+                  title="Verificar conexión"
+                >↻</button>
+              </div>
+            </div>
 
-        <div className="settings-row">
-          <label htmlFor="setting-ollama-host" className="settings-row-text">Host</label>
-          <input
-            id="setting-ollama-host"
-            type="text"
-            value={local.ollamaHost}
-            onChange={e => update('ollamaHost', e.target.value)}
-            onBlur={e => checkOllama(e.target.value)}
-            placeholder="http://localhost:11434"
-          />
-        </div>
+            <div className="settings-row">
+              <label htmlFor="setting-ollama-model" className="settings-row-text">Modelo</label>
+              {ollamaModels.length > 0 ? (
+                <select
+                  id="setting-ollama-model"
+                  value={ollamaModels.includes(local.ollamaModel) ? local.ollamaModel : ollamaModels[0]}
+                  onChange={e => update('ollamaModel', e.target.value)}
+                >
+                  {ollamaModels.map(m => (
+                    <option key={m} value={m}>{m}</option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  id="setting-ollama-model"
+                  type="text"
+                  value={local.ollamaModel}
+                  onChange={e => update('ollamaModel', e.target.value)}
+                  placeholder="llama3.2"
+                />
+              )}
+            </div>
+
+            <div className="settings-row">
+              <label htmlFor="setting-ollama-host" className="settings-row-text">Host</label>
+              <input
+                id="setting-ollama-host"
+                type="text"
+                value={local.ollamaHost}
+                onChange={e => update('ollamaHost', e.target.value)}
+                onBlur={e => checkOllama(e.target.value)}
+                placeholder="http://localhost:11434"
+              />
+            </div>
+          </>
+        )}
+
+        {local.aiProvider === 'openai' && (
+          <>
+            <div className="settings-section-hdr mt">Configuración OpenAI</div>
+            <div className="settings-row">
+              <label htmlFor="setting-openai-model" className="settings-row-text">Modelo</label>
+              <input
+                id="setting-openai-model"
+                type="text"
+                value={local.openaiModel}
+                onChange={e => update('openaiModel', e.target.value)}
+                placeholder="gpt-4o-mini"
+              />
+            </div>
+            <div className="settings-row">
+              <label htmlFor="setting-openai-key" className="settings-row-text">API Key</label>
+              <input
+                id="setting-openai-key"
+                type="password"
+                value={local.openaiApiKey}
+                onChange={e => update('openaiApiKey', e.target.value)}
+                placeholder="sk-..."
+              />
+            </div>
+          </>
+        )}
+
+        {local.aiProvider === 'gemini' && (
+          <>
+            <div className="settings-section-hdr mt">Configuración Gemini</div>
+            <div className="settings-row">
+              <label htmlFor="setting-gemini-model" className="settings-row-text">Modelo</label>
+              <input
+                id="setting-gemini-model"
+                type="text"
+                value={local.geminiModel}
+                onChange={e => update('geminiModel', e.target.value)}
+                placeholder="gemini-1.5-flash"
+              />
+            </div>
+            <div className="settings-row">
+              <label htmlFor="setting-gemini-key" className="settings-row-text">API Key</label>
+              <input
+                id="setting-gemini-key"
+                type="password"
+                value={local.geminiApiKey}
+                onChange={e => update('geminiApiKey', e.target.value)}
+                placeholder="AIza..."
+              />
+            </div>
+          </>
+        )}
+
+        {local.aiProvider === 'anthropic' && (
+          <>
+            <div className="settings-section-hdr mt">Configuración Anthropic</div>
+            <div className="settings-row">
+              <label htmlFor="setting-anthropic-model" className="settings-row-text">Modelo</label>
+              <input
+                id="setting-anthropic-model"
+                type="text"
+                value={local.anthropicModel}
+                onChange={e => update('anthropicModel', e.target.value)}
+                placeholder="claude-3-5-sonnet-latest"
+              />
+            </div>
+            <div className="settings-row">
+              <label htmlFor="setting-anthropic-key" className="settings-row-text">API Key</label>
+              <input
+                id="setting-anthropic-key"
+                type="password"
+                value={local.anthropicApiKey}
+                onChange={e => update('anthropicApiKey', e.target.value)}
+                placeholder="sk-ant-..."
+              />
+            </div>
+          </>
+        )}
       </>
     )
   }

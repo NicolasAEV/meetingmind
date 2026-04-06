@@ -6,7 +6,8 @@ import type { Note } from '../../types/notes.ts'
 interface Props {
   readonly notes:       Note[]
   readonly generating:  boolean
-  readonly ollamaModel: string
+  readonly aiProvider:  string
+  readonly aiModel:     string
   readonly onQuery:     (query: string) => void
 }
 
@@ -21,7 +22,7 @@ function isCodeNote(text: string): boolean {
   return /```|const |function |import |class |def |<\/|=>/.test(text)
 }
 
-export default function NotesPanel({ notes, generating, ollamaModel, onQuery }: Props) {
+export default function NotesPanel({ notes, generating, aiProvider, aiModel, onQuery }: Props) {
   const bottomRef  = useRef<HTMLDivElement>(null)
   const [query, setQuery] = useState('')
 
@@ -45,7 +46,7 @@ export default function NotesPanel({ notes, generating, ollamaModel, onQuery }: 
       <div className="panel-header">
         <span className="panel-header-icon">✦</span>
         {'NOTAS AUTOMÁTICAS'}
-        <span className="panel-badge" title={ollamaModel}>{ollamaModel}</span>
+        <span className="panel-badge" title={`${aiProvider}: ${aiModel}`}>{aiModel}</span>
       </div>
 
       <div className="panel-body" style={{ flex: 1 }}>
@@ -87,7 +88,7 @@ export default function NotesPanel({ notes, generating, ollamaModel, onQuery }: 
                 <div className="note-card-body" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <div className="spinner" />
                   <span style={{ color: 'var(--text-muted)', fontSize: 11 }}>
-                    Procesando con Ollama…
+                    Procesando con {aiProvider.charAt(0).toUpperCase() + aiProvider.slice(1)}…
                   </span>
                 </div>
               </div>

@@ -11,15 +11,17 @@ export interface ElectronAPI {
     data:        Float32Array,
     source:      'mic' | 'system',
     language:    string,
-    ollamaModel: string,
-    ollamaHost:  string,
+    aiProvider:  string,
+    aiModel:     string,
+    aiOptions:   Record<string, any>,
   ) => Promise<TranscriptResult>
 
   // ── LLM ───────────────────────────────────────────────────────────────────
   generateNote: (
-    query:       string,
-    ollamaModel: string,
-    ollamaHost:  string,
+    query:    string,
+    provider: string,
+    model:    string,
+    options:  Record<string, any>,
   ) => Promise<string>
 
   listOllamaModels: (host: string) => Promise<{

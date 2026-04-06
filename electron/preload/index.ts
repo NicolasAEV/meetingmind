@@ -10,7 +10,7 @@ import type {
   TranscriptEntry,
   TranscriptResult,
   ModelProgressEvent,
-} from '../src/types.js'
+} from '../../src/types.js'
 
 // Helper: register an ipcRenderer listener and return a cleanup function
 function on<T>(channel: string, cb: (value: T) => void): () => void {
@@ -31,21 +31,28 @@ contextBridge.exposeInMainWorld('electronAPI', {
     data: Float32Array,
     source: 'mic' | 'system',
     language: string,
-    ollamaModel: string,
-    ollamaHost: string,
+    aiProvider: string,
+    aiModel: string,
+    aiOptions: Record<string, any>,
   ): Promise<TranscriptResult> =>
     ipcRenderer.invoke(
       'transcribe:chunk',
-      data.buffer,          // transfer ArrayBuffer — zero-copy when structured clone supports it
+      data.buffer,
       source,
       language,
-      ollamaModel,
-      ollamaHost,
+      aiProvider,
+      aiModel,
+      aiOptions,
     ),
 
   // ── LLM ───────────────────────────────────────────────────────────────────
-  generateNote: (query: string, ollamaModel: string, ollamaHost: string): Promise<string> =>
-    ipcRenderer.invoke('llm:generate-note', query, ollamaModel, ollamaHost),
+  generateNote: (
+    query: string, 
+    provider: string, 
+    model: string, 
+    options: Record<string, any>
+  ): Promise<string> =>
+    ipcRenderer.invoke('llm:generate-note', query, provider, model, options),
 
   listOllamaModels: (host: string): Promise<{ connected: boolean; models: string[]; error?: string }> =>
     ipcRenderer.invoke('ollama:list-models', host),

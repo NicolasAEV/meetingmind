@@ -67,16 +67,25 @@ export default function MeetingPage() {
   const [notes,       setNotes]       = useState<Note[]>([])
   const [generating,  setGenerating]  = useState(false)
 
+  // Helper to extract current AI config based on provider
+  const aiConfig = (() => {
+    const p = settings.aiProvider
+    if (p === 'openai')    return { provider: p, model: settings.openaiModel,    options: { apiKey: settings.openaiApiKey } }
+    if (p === 'gemini')    return { provider: p, model: settings.geminiModel,    options: { apiKey: settings.geminiApiKey } }
+    if (p === 'anthropic') return { provider: p, model: settings.anthropicModel, options: { apiKey: settings.anthropicApiKey } }
+    return { provider: 'ollama' as const, model: settings.ollamaModel, options: { host: settings.ollamaHost } }
+  })()
+
   // Audio chunk handler — forwards resampled PCM to main process for transcription
   const onChunk = useCallback(
     (raw: Float32Array, fromRate: number, source: 'mic' | 'system') => {
       if (modelStatus !== 'ready') return
       const pcm16 = resampleTo16k(raw, fromRate)
       electron
-        .transcribeChunk(pcm16, source, settings.language, settings.ollamaModel, settings.ollamaHost)
+        .transcribeChunk(pcm16, source, settings.language, aiConfig.provider, aiConfig.model, aiConfig.options)
         .catch((err: unknown) => console.warn('[transcribe]', err))
     },
-    [modelStatus, settings.language, settings.ollamaModel, settings.ollamaHost],
+    [modelStatus, settings.language, aiConfig],
   )
 
   const { isRecording, micAnalyser, systemAnalyser, start, stop } = useAudioRecording(onChunk)
@@ -144,7 +153,7 @@ export default function MeetingPage() {
   const handleManualQuery = useCallback((query: string) => {
     setGenerating(true)
     electron
-      .generateNote(query, settings.ollamaModel, settings.ollamaHost)
+      .generateNote(query, aiConfig.provider, aiConfig.model, aiConfig.options)
       .then(noteText => {
         if (noteText) {
           const note = {
@@ -159,7 +168,7 @@ export default function MeetingPage() {
       })
       .catch((err: unknown) => console.warn('[manual query]', err))
       .finally(() => setGenerating(false))
-  }, [settings.ollamaModel, settings.ollamaHost])
+  }, [aiConfig])
 
   const statusLabel = getStatusLabel(modelStatus, modelProgress, isRecording)
   const dotClass    = getDotClass(modelStatus, isRecording)
@@ -219,7 +228,8 @@ export default function MeetingPage() {
         <NotesPanel
           notes={notes}
           generating={generating}
-          ollamaModel={settings.ollamaModel}
+          aiProvider={settings.aiProvider}
+          aiModel={aiConfig.model}
           onQuery={handleManualQuery}
         />
       </div>
@@ -240,7 +250,7 @@ export default function MeetingPage() {
         <span className="status-bar-sep">|</span>
         <div className="status-bar-item">
           <span className="status-dot-sm" />
-          LLM: {settings.ollamaModel.toUpperCase()}
+          IA: {settings.aiProvider.toUpperCase()} ({aiConfig.model})
         </div>
         <div className="status-bar-right status-bar-item">
           Whisper: {settings.whisperModel.split('/').pop()}

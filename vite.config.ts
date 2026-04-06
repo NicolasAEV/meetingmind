@@ -20,7 +20,7 @@ export default defineConfig({
     electron([
       {
         // ── Main process ──────────────────────────────────────────────────
-        entry: 'electron/main.ts',
+        entry: 'electron/main/index.ts',
         vite: {
           build: {
             sourcemap: true,
@@ -32,7 +32,7 @@ export default defineConfig({
       },
       {
         // ── Preload script ────────────────────────────────────────────────
-        entry: 'electron/preload.ts',
+        entry: 'electron/preload/index.ts',
         onstart(options) {
           // Notify renderer to reload after preload rebuild
           options.reload()

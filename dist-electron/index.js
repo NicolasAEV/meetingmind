@@ -12499,4 +12499,4 @@ app.on("activate", () => {
 	if (BrowserWindow.getAllWindows().length === 0) createWindow();
 });
 
-//# sourceMappingURL=main.js.map
+//# sourceMappingURL=index.js.map

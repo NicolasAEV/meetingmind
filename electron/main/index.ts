@@ -2,10 +2,11 @@ import { app, BrowserWindow, ipcMain, shell } from 'electron'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import Store from 'electron-store'
-import { setupAudioIPC }       from './audio.js'
-import { setupTranscriberIPC } from './transcriber.js'
-import { setupLLMIPC }         from './llm.js'
-import type { AppSettings }    from '../src/types.js'
+import { setupAudioIPC }       from '../services/audio/index.js'
+import { setupTranscriberIPC } from '../services/transcription/engine.js'
+import { setupLLMIPC }         from '../services/ai/orchestrator.js'
+import type { AppSettings }    from '../../src/types.js'
+import { DEFAULT_SETTINGS }    from '../../src/constants/settings.js'
 
 // ─── Paths ────────────────────────────────────────────────────────────────────
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -22,15 +23,7 @@ process.env['VITE_PUBLIC'] = VITE_DEV_SERVER_URL
 
 // ─── Persistent settings via electron-store ───────────────────────────────────
 const store = new Store<AppSettings>({
-  defaults: {
-    colorTheme:   'midnight',
-    opacity:       0.95,
-    alwaysOnTop:   false,
-    whisperModel: 'Xenova/whisper-tiny',
-    ollamaModel:  'llama3.2',
-    ollamaHost:   'http://localhost:11434',
-    language:     'es',
-  },
+  defaults: DEFAULT_SETTINGS,
 })
 
 // ─── Window ───────────────────────────────────────────────────────────────────
