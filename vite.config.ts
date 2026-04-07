@@ -42,7 +42,13 @@ export default defineConfig({
             sourcemap: 'inline',
             minify: false,
             outDir: 'dist-electron',
-            rollupOptions: { external: ['electron'] },
+            rollupOptions: { 
+              external: ['electron'],
+              output: {
+                format: 'cjs',
+                entryFileNames: '[name].cjs'
+              }
+            },
           },
         },
       },
