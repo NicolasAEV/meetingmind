@@ -1,20 +1,21 @@
-# MeetingMind
+<div align="center">
+  <img src="./public/icon.png" width="120" alt="MeetingMind Logo" style="border-radius:20px;" />
+  <h1>MeetingMind 🧠</h1>
+</div>
 
-Aplicación de escritorio para transcripción de reuniones en tiempo real y generación automática de notas técnicas con múltiples proveedores de IA (Ollama, Gemini, OpenAI, Claude).
-
-> Procesa audio localmente (Whisper) y genera notas usando el proveedor de tu elección.
+Aplicación de escritorio inteligente para transcripción de reuniones en tiempo real y generación automática de notas técnicas. Emplea modelos locales o en la nube para transcripción y extracción de contexto.
 
 ---
 
 ## Características
 
-- **Transcripción en vivo** de micrófono y audio del sistema por separado.
-- **Soporte Multi-IA**: Elige entre Ollama (local), Google Gemini, OpenAI (GPT) o Anthropic (Claude).
-- **Detección automática** de consultas técnicas (`¿cómo funciona X?`, `vs`, `¿qué es...?`, keywords de tecnología).
-- **Notas automáticas** generadas al detectar una consulta técnica, usando el modelo configurado.
-- **Visualizador dual** de audio (micrófono en verde, sistema en morado) con barras de frecuencia.
-- **Tema de color configurable** (6 paletas) y **transparencia ajustable** en tiempo real.
-- **Ventana always-on-top**, sin marco, con barra de título personalizada.
+- **Transcripción Dual**: Ejecuta reconocimiento de voz de manera 100% local (Vía `@xenova/transformers` + Whisper ONNX) o a máxima velocidad a través de la API en la nube de OpenAI Whisper.
+- **Micro y Sistema Separados**: Transcripción en vivo del micrófono y del audio del sistema simultáneamente.
+- **Soporte Multi-IA para Notas**: Generación de apuntes conectando con Ollama (local), Google Gemini, OpenAI (GPT) o Anthropic (Claude).
+- **Consultas Técnicas Automáticas**: Detecta comandos verbales (ej. `¿cómo funciona X?`, `vs`, `ventajas de...`) y extrae respuestas de IA en tiempo real.
+- **Diseño Ultra-Responsivo**: Intefaz dinámica capaz de reducirse hasta 400x400 píxeles, re-apilando los paneles automáticamente gracias a la arquitectura modular CSS.
+- **Personalización Premium**: Interfaz *frameless* glassmorphism, 6 colores de acento configurables, y control de opacidad en vivo.
+- **Flujo Out-of-the-Box**: Configuración que te recibe automáticamente al ejecutar por primera vez para poner a punto las API keys y modelos locales.
 
 ---
 
@@ -150,12 +151,12 @@ El sistema utiliza el **Strategy Pattern** para permitir flexibilidad máxima:
 
 | Ajuste | Descripción |
 |---|---|
-| **Color del tema** | 6 paletas (Midnight, Ocean, Forest, Sunset, Rose, Amber) — aplicadas vía CSS custom properties en tiempo real |
-| **Opacidad** | 40 % – 100 % — llama a `win.setOpacity()` instantáneamente |
-| **Siempre visible** | `win.setAlwaysOnTop('screen-saver')` |
-| **Modelo Whisper** | tiny / base / small — descarga automática en primera selección |
-| **Modelo Ollama** | cualquier modelo instalado localmente |
+| **Color del tema** | 6 paletas (Midnight, Ocean, Forest, Sunset, Rose, Amber) — aplicadas vía CSS y CSS Modules en tiempo real |
+| **Opacidad y Visibilidad** | Opacidad ajustable y modo Always On Top (`win.setAlwaysOnTop`) instantáneo |
+| **Motor de Transcripción** | Alterna entre Whisper Local (`@xenova`) u OpenAI Whisper Cloud |
 | **Idioma** | Español / English / Auto-detectar |
+| **Configuración Automática** | Ventana de `Settings` forzada al primer inicio hasta realizar tu primera configuración |
+| **LLMs Configurable** | Configuración unificada para Ollama (host y módulos), OpenAI, Gemini y Claude (modelos + API keys) |
 
 ---
 
