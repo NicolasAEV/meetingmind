@@ -6,6 +6,7 @@ export interface AppSettings {
   colorTheme:   ColorTheme
   opacity:      number    // 0.4 – 1.0
   alwaysOnTop:  boolean
+  transcriptionEngine: 'local' | 'openai'
   whisperModel: string    // e.g. 'Xenova/whisper-tiny'
   language:     string    // 'es' | 'en' | 'auto'
 

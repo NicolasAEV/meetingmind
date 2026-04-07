@@ -11,6 +11,7 @@
 import { ipcMain, app, type BrowserWindow } from 'electron'
 import path from 'node:path'
 import { v4 as uuidv4 } from 'uuid'
+import { OpenAI } from 'openai'
 import { detectTechnicalQuery }  from './detector.js'
 import { appendContext, generateNote, emitNote } from '../ai/orchestrator.js'
 import type { TranscriptEntry, TranscriptResult, ModelProgressEvent } from '../../../src/types.js'
@@ -65,6 +66,42 @@ function rms(data: Float32Array): number {
   return Math.sqrt(sum / data.length)
 }
 
+function float32ToWavBuffer(samples: Float32Array, sampleRate = 16000): Buffer {
+  const numChannels = 1
+  const bytesPerSample = 2 // 16-bit PCM
+  const blockAlign = numChannels * bytesPerSample
+  const byteRate = sampleRate * blockAlign
+  const dataSize = samples.length * bytesPerSample
+  const buffer = Buffer.alloc(44 + dataSize)
+
+  // Header RIFF
+  buffer.write('RIFF', 0)
+  buffer.writeUInt32LE(36 + dataSize, 4)
+  buffer.write('WAVE', 8)
+  buffer.write('fmt ', 12)
+  buffer.writeUInt32LE(16, 16) // fmt chunk size
+  buffer.writeUInt16LE(1, 20)  // format (PCM)
+  buffer.writeUInt16LE(numChannels, 22)
+  buffer.writeUInt32LE(sampleRate, 24)
+  buffer.writeUInt32LE(byteRate, 28)
+  buffer.writeUInt16LE(blockAlign, 32)
+  buffer.writeUInt16LE(bytesPerSample * 8, 34)
+  buffer.write('data', 36)
+  buffer.writeUInt32LE(dataSize, 40)
+
+  // Data
+  let offset = 44
+  for (let i = 0; i < samples.length; i++) {
+    // clamp to -1.0 .. 1.0
+    let s = Math.max(-1, Math.min(1, samples[i]))
+    s = s < 0 ? s * 0x8000 : s * 0x7FFF
+    buffer.writeInt16LE(Math.round(s), offset)
+    offset += 2
+  }
+
+  return buffer
+}
+
 // Whisper genera texto espurio (alucinaciones) cuando el audio contiene
 // silencio, música o ruido no-vocal. Este set filtra las más comunes.
 const HALLUCINATION_PATTERNS = [
@@ -116,6 +153,30 @@ async function transcribeBuffer(audioData: Float32Array, language: string): Prom
   return text
 }
 
+async function transcribeOpenAI(audioData: Float32Array, language: string, apiKey: string): Promise<string> {
+  if (!apiKey) throw new Error('OpenAI API Key is missing')
+  if (audioData.length < MIN_SAMPLES_16K) return ''
+  if (rms(audioData) < MIN_RMS) return ''
+
+  const wavBuffer = float32ToWavBuffer(audioData)
+  const file = new File([wavBuffer], 'chunk.wav', { type: 'audio/wav' })
+
+  const client = new OpenAI({ apiKey })
+  try {
+    const result = await client.audio.transcriptions.create({
+      file,
+      model: 'whisper-1',
+      language: language === 'auto' ? undefined : (language || undefined),
+    })
+
+    if (isHallucination(result.text)) return ''
+    return result.text
+  } catch (err) {
+    console.error('[OpenAI Whisper API]', err)
+    return ''
+  }
+}
+
 // ─── IPC setup ────────────────────────────────────────────────────────────────
 
 export function setupTranscriberIPC(win: BrowserWindow): void {
@@ -136,12 +197,20 @@ export function setupTranscriberIPC(win: BrowserWindow): void {
       buffer: ArrayBuffer,
       source: 'mic' | 'system',
       language: string,
+      transcriptionEngine: 'local' | 'openai',
+      openaiApiKey: string,
       aiProvider: any, // StrategyType
       aiModel: string,
       aiOptions: Record<string, any>,
     ): Promise<TranscriptResult> => {
       const audioData = new Float32Array(buffer)
-      const text = await transcribeBuffer(audioData, language)
+      let text = ''
+      
+      if (transcriptionEngine === 'openai') {
+        text = await transcribeOpenAI(audioData, language, openaiApiKey)
+      } else {
+        text = await transcribeBuffer(audioData, language)
+      }
 
       if (!text) {
         return { text: '', source, isTechnicalQuery: false, confidence: 0 }

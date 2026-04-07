@@ -11,6 +11,8 @@ export interface ElectronAPI {
     data:        Float32Array,
     source:      'mic' | 'system',
     language:    string,
+    transcriptionEngine: 'local' | 'openai',
+    openaiApiKey: string,
     aiProvider:  string,
     aiModel:     string,
     aiOptions:   Record<string, any>,

@@ -4,6 +4,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   colorTheme:   'midnight',
   opacity:       0.95,
   alwaysOnTop:   false,
+  transcriptionEngine: 'local',
   whisperModel: 'Xenova/whisper-large-v3',
   language:     'es',
 

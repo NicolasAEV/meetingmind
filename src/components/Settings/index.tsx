@@ -135,26 +135,50 @@ export default function Settings({ settings, onChange, onClose }: Props) {
   function renderAudio() {
     return (
       <>
-        <div className="settings-section-hdr">Modelo Whisper</div>
-
+        <div className="settings-section-hdr">Motor de Transcripción</div>
         <div className="settings-row">
-          <label htmlFor="setting-whisper-model" className="settings-row-text">Modelo</label>
+          <label htmlFor="setting-transcription-engine" className="settings-row-text">Proveedor Transcripción</label>
           <select
-            id="setting-whisper-model"
-            value={local.whisperModel}
-            onChange={e => update('whisperModel', e.target.value)}
+            id="setting-transcription-engine"
+            value={local.transcriptionEngine}
+            onChange={e => update('transcriptionEngine', e.target.value as any)}
           >
-            {(Object.entries(WHISPER_MODEL_GROUPS) as [keyof typeof WHISPER_MODEL_GROUPS, string][]).map(
-              ([groupKey, groupLabel]) => (
-                <optgroup key={groupKey} label={groupLabel}>
-                  {WHISPER_MODELS.filter(m => m.group === groupKey).map(m => (
-                    <option key={m.value} value={m.value}>{m.label}</option>
-                  ))}
-                </optgroup>
-              ),
-            )}
+            <option value="local">Local (@xenova/transformers)</option>
+            <option value="openai">OpenAI API (Cloud)</option>
           </select>
         </div>
+
+        {local.transcriptionEngine === 'local' && (
+          <>
+            <div className="settings-section-hdr mt">Modelo Whisper Local</div>
+            <div className="settings-row">
+              <label htmlFor="setting-whisper-model" className="settings-row-text">Modelo</label>
+              <select
+                id="setting-whisper-model"
+                value={local.whisperModel}
+                onChange={e => update('whisperModel', e.target.value)}
+              >
+                {(Object.entries(WHISPER_MODEL_GROUPS) as [keyof typeof WHISPER_MODEL_GROUPS, string][]).map(
+                  ([groupKey, groupLabel]) => (
+                    <optgroup key={groupKey} label={groupLabel}>
+                      {WHISPER_MODELS.filter(m => m.group === groupKey).map(m => (
+                        <option key={m.value} value={m.value}>{m.label}</option>
+                      ))}
+                    </optgroup>
+                  ),
+                )}
+              </select>
+            </div>
+          </>
+        )}
+
+        {local.transcriptionEngine === 'openai' && (
+          <div className="settings-row mt">
+            <span className="settings-row-text" style={{ fontSize: '0.9em', color: '#888' }}>
+              ℹ️ Se requiere tener configurada la API Key de OpenAI en la pestaña "IA (Ollama/API)".
+            </span>
+          </div>
+        )}
 
         <div className="settings-section-hdr mt">Idioma</div>
 

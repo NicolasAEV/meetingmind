@@ -82,7 +82,7 @@ export default function MeetingPage() {
       if (modelStatus !== 'ready') return
       const pcm16 = resampleTo16k(raw, fromRate)
       electron
-        .transcribeChunk(pcm16, source, settings.language, aiConfig.provider, aiConfig.model, aiConfig.options)
+        .transcribeChunk(pcm16, source, settings.language, settings.transcriptionEngine, settings.openaiApiKey, aiConfig.provider, aiConfig.model, aiConfig.options)
         .catch((err: unknown) => console.warn('[transcribe]', err))
     },
     [modelStatus, settings.language, aiConfig],
@@ -135,11 +135,16 @@ export default function MeetingPage() {
 
   // Load (or reload) Whisper model — re-runs when user selects a different model
   useEffect(() => {
+    if (settings.transcriptionEngine === 'openai') {
+      setModelStatus('ready')
+      setModelProgress(100)
+      return
+    }
     setModelStatus('loading')
     setModelProgress(0)
     electron.loadModel(settings.whisperModel).catch(() => setModelStatus('error'))
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [settings.whisperModel])
+  }, [settings.whisperModel, settings.transcriptionEngine])
 
   // Persist settings change + apply side-effects (opacity, alwaysOnTop)
   function handleSettingsChange(patch: Partial<AppSettings>) {
