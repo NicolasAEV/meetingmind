@@ -1,3 +1,4 @@
+﻿import './styles.css'
 import { useEffect, useRef, useState, useCallback, type KeyboardEvent } from 'react'
 import { formatDistanceToNow } from 'date-fns'
 import { es } from 'date-fns/locale'

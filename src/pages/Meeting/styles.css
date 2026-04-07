@@ -1,0 +1,170 @@
+/* ─── Title bar ──────────────────────────────────────────────────────────── */
+.titlebar {
+  display:             flex;
+  align-items:         center;
+  padding:             0 16px;
+  gap:                 10px;
+  -webkit-app-region:  drag;
+  background:          rgba(0,0,0,0.4);
+  border-bottom:       1px solid var(--border);
+}
+
+.titlebar-logo {
+  display:     flex;
+  align-items: center;
+  gap:         8px;
+  font-weight: 800;
+  font-size:   15px;
+  color:       var(--accent);
+}
+.titlebar-logo .logo-sub { color: var(--text); font-weight: 700; }
+.pro-badge {
+  background:    var(--accent);
+  color:         #fff;
+  font-size:     8px;
+  font-weight:   900;
+  letter-spacing: .8px;
+  padding:       2px 6px;
+  border-radius: 4px;
+}
+
+.titlebar-spacer { flex: 1; }
+
+.titlebar-status {
+  display:     flex;
+  align-items: center;
+  gap:         6px;
+  font-size:   11px;
+  color:       var(--text-muted);
+}
+
+.status-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  transition: background .3s;
+  flex-shrink: 0;
+}
+.status-dot.recording { background: #f44336; animation: pulse 1.2s ease-in-out infinite; }
+.status-dot.ready     { background: #00e676; }
+.status-dot.loading   { background: #ffc400; animation: blink .8s step-end infinite; }
+
+.titlebar-controls {
+  -webkit-app-region: no-drag;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tb-icon-btn {
+  -webkit-app-region: no-drag;
+  background:    transparent;
+  border:        none;
+  cursor:        pointer;
+  color:         var(--text-muted);
+  padding:       4px 6px;
+  border-radius: 6px;
+  font-size:     16px;
+  display:       flex;
+  align-items:   center;
+  transition:    background .15s, color .15s;
+}
+.tb-icon-btn:hover { background: var(--surface-hover); color: var(--text); }
+.tb-icon-btn.close:hover { background: rgba(244,67,54,.25); color: #ff7b6b; }
+
+.rec-btn {
+  -webkit-app-region: no-drag;
+  display:       flex;
+  align-items:   center;
+  gap:           8px;
+  padding:       8px 24px;
+  border-radius: 22px;
+  cursor:        pointer;
+  font-size:     14px;
+  font-weight:   700;
+  letter-spacing: .3px;
+  background:    var(--accent);
+  color:         #fff;
+  border:        none;
+  transition:    opacity .2s, transform .1s;
+  box-shadow:    0 2px 14px var(--accent-glow);
+}
+.rec-btn:hover:not(:disabled)  { opacity: .88; }
+.rec-btn:active { transform: scale(.96); }
+.rec-btn:disabled { opacity: .4; cursor: default; box-shadow: none; }
+.rec-btn.recording {
+  background: #e53935;
+  box-shadow: 0 2px 14px rgba(229,57,53,.4);
+}
+.rec-btn.recording:hover { opacity: .88; }
+
+/* ─── Model loading screen ───────────────────────────────────────────────── */
+.model-overlay {
+  position:    fixed;
+  inset:       0;
+  background:  rgba(0,0,0,0.85);
+  display:     flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap:         16px;
+  z-index:     200;
+}
+
+.model-title { font-size: 18px; font-weight: 700; color: var(--text); }
+.model-sub   { font-size: 12px; color: var(--text-muted); }
+
+.progress-bar-wrap {
+  width:         320px;
+  height:        6px;
+  background:    var(--surface);
+  border-radius: 3px;
+  overflow:      hidden;
+}
+
+.progress-bar-fill {
+  height:        100%;
+  background:    var(--accent);
+  border-radius: 3px;
+  transition:    width .3s ease;
+  box-shadow:    0 0 10px var(--accent-glow);
+}
+
+/* ─── Bottom status bar ──────────────────────────────────────────────────── */
+.status-bar {
+  display:     flex;
+  align-items: center;
+  gap:         14px;
+  padding:     0 14px;
+  height:      var(--statusbar-h);
+  background:  rgba(0,0,0,.4);
+  border-top:  1px solid var(--border);
+  font-size:   9px;
+  color:       var(--text-muted);
+  letter-spacing: .3px;
+}
+.status-bar-item {
+  display:     flex;
+  align-items: center;
+  gap:         5px;
+  white-space: nowrap;
+}
+.status-dot-sm {
+  width:         6px;
+  height:        6px;
+  border-radius: 50%;
+  background:    #00e676;
+  flex-shrink:   0;
+}
+.status-dot-sm.inactive { background: var(--text-muted); }
+.status-bar-right { margin-left: auto; }
+.status-bar-sep   { opacity: .25; }
+
+/* -- Media queries para pantallas chicas */
+@media (max-width: 600px) {
+  .titlebar-status { display: none; }
+  .titlebar-logo .pro-badge { display: none; }
+  .rec-btn { padding: 6px 14px; font-size: 12px; gap: 4px; }
+  .status-bar .status-bar-item { font-size: 9px; }
+  .status-bar-right { display: none; }
+}

@@ -1,3 +1,4 @@
+﻿import './styles.css'
 import { useEffect, useRef, useCallback } from 'react'
 import { format } from 'date-fns'
 import type { TranscriptEntry } from '../../types/transcript.ts'

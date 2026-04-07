@@ -1,6 +1,7 @@
 import type { AppSettings } from '../types/settings.ts'
 
 export const DEFAULT_SETTINGS: AppSettings = {
+  isFirstRun:   true,
   colorTheme:   'midnight',
   opacity:       0.95,
   alwaysOnTop:   false,

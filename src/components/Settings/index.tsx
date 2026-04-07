@@ -1,3 +1,4 @@
+﻿import './styles.css'
 import { useState, useEffect, useCallback } from 'react'
 import type { AppSettings, ColorTheme } from '../../types/settings.ts'
 import { COLOR_THEMES } from '../../constants/themes.ts'

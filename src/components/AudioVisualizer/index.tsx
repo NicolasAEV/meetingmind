@@ -1,3 +1,4 @@
+﻿import './styles.css'
 import { useEffect, useRef, useState } from 'react'
 
 interface Props {

@@ -3,7 +3,7 @@
  * Node.js built-ins.  Uses contextBridge to safely expose an ElectronAPI
  * surface to the React renderer without enabling nodeIntegration.
  */
-import { contextBridge, ipcRenderer } from 'electron'
+const { contextBridge, ipcRenderer } = require('electron')
 import type {
   AppSettings,
   Note,

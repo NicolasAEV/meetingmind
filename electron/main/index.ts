@@ -35,12 +35,13 @@ function createWindow(): void {
   win = new BrowserWindow({
     width:            1400,
     height:           900,
-    minWidth:         960,
-    minHeight:        600,
+    minWidth:         400,
+    minHeight:        400,
     frame:            false,     // Custom title bar
     transparent:      true,      // Allows glass-morphism effects
     backgroundColor: '#00000000',
     opacity:          savedOpacity,
+    icon:             path.join(process.env['VITE_PUBLIC'] as string, 'icon.png'),
     show:             false,     // Show after content loads
     webPreferences: {
       preload:          PRELOAD_PATH,
