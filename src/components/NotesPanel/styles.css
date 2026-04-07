@@ -1,3 +1,18 @@
+/* ─── Notes panel body scroll ────────────────────────────────────────────── */
+.panel .panel-body {
+  overflow-y:   auto;
+  overflow-x:   hidden;
+  flex:         1;
+  min-height:   0;   /* crucial for flex children to scroll */
+  scroll-behavior: smooth;
+}
+
+/* Scrollbar sutil, idéntico al global */
+.panel .panel-body::-webkit-scrollbar       { width: 4px; }
+.panel .panel-body::-webkit-scrollbar-track  { background: transparent; }
+.panel .panel-body::-webkit-scrollbar-thumb  { background: var(--border); border-radius: 2px; }
+.panel .panel-body::-webkit-scrollbar-thumb:hover { background: var(--accent-glow); }
+
 /* ─── Note cards ─────────────────────────────────────────────────────────── */
 .note-card {
   border-radius:  var(--radius);
